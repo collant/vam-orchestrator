@@ -1,0 +1,150 @@
+{ 
+   "licenseType" : "CC BY", 
+   "creatorName" : "Twinwin", 
+   "packageName" : "Imposter", 
+   "standardReferenceVersionOption" : "Latest", 
+   "scriptReferenceVersionOption" : "Exact", 
+   "description" : "Connects VAM to ChatGPT (OpenAI completion API)", 
+   "credits" : "", 
+   "instructions" : "Please visit the github repository to run the servers locally:\nhttps://github.com/collant/vam-orchestrator", 
+   "promotionalLink" : "https://github.com/collant/vam-orchestrator", 
+   "programVersion" : "1.21.1.0", 
+   "contentList" : [ 
+      "Custom/Scripts/TwinWin/Imposter/Imposter.cs", 
+      "Saves/scene/Sample scene for Imposter Plugin.json", 
+      "Saves/scene/Sample scene for Imposter Plugin.jpg"
+   ], 
+   "dependencies" : { 
+      "MeshedVR.3PointLightSetup.latest" : { 
+         "licenseType" : "CC BY", 
+         "dependencies" : { 
+            "NoStage3.Hair_Long_Upswept_Top_Bun.latest" : { 
+               "licenseType" : "CC BY", 
+               "dependencies" : { 
+               }
+            }
+         }
+      }, 
+      "ascorad.Haley_Armageddon_5.29" : { 
+         "licenseType" : "CC BY", 
+         "dependencies" : { 
+            "ICannotDie.LUT_Pack.latest" : { 
+               "licenseType" : "FC", 
+               "dependencies" : { 
+               }
+            }, 
+            "ToumeiHitsuji.DiviningRod.4" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "AcidBubbles.ImprovedPoV.1" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "hazmhox.vamaudioanalyzer.1" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "LFE.SoundtrackSync0.4" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "hazmhox.vammoan.20" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "AcidBubbles.Timeline.275" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "LFE.ExtraAutoGenitals0.3" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "VL_13.Morph_phonemes.latest" : { 
+               "licenseType" : "CC BY-NC", 
+               "dependencies" : { 
+               }
+            }, 
+            "Jackaroo.JarModularExpressions.latest" : { 
+               "licenseType" : "CC BY", 
+               "dependencies" : { 
+               }
+            }, 
+            "MalMorality.MalMorality's_SuperDuperAmazingSmile.latest" : { 
+               "licenseType" : "FC", 
+               "dependencies" : { 
+               }
+            }, 
+            "cotyounoyume.ExpressionBlushingAndTears.32" : { 
+               "licenseType" : "CC BY-NC-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "hazmhox.fluids101.7" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "hazmhox.vamcui.1" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "AcidBubbles.Utilities.6" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "MacGruber.PostMagic.3" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "AcidBubbles.SpawnPoint.5" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "hazmhox.vamlaunch.2" : { 
+               "licenseType" : "FC", 
+               "dependencies" : { 
+               }
+            }, 
+            "hazmhox.spaceboxes101.latest" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+               }
+            }, 
+            "hazmhox.vamoverlays.5" : { 
+               "licenseType" : "CC BY-SA", 
+               "dependencies" : { 
+                  "MeshedVR.PresetsPack.latest" : { 
+                     "licenseType" : "CC BY", 
+                     "dependencies" : { 
+                     }
+                  }
+               }
+            }
+         }
+      }, 
+      "NoStage3.Hair_Long_Upswept_Top_Bun.latest" : { 
+         "licenseType" : "CC BY", 
+         "dependencies" : { 
+         }
+      }
+   }, 
+   "customOptions" : { 
+      "preloadMorphs" : "false"
+   }, 
+   "hadReferenceIssues" : "false", 
+   "referenceIssues" : [ 
+   ]
+}
