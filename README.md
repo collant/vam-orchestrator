@@ -3,6 +3,9 @@
 
 This is a node server that acts as an orchestrator between VAM, TTS server, STT server and LLM server (OpenAPI for the moment).
 
+![image](https://user-images.githubusercontent.com/125187079/219703449-7448f4cb-449d-4481-8f07-8a947c3c57e1.png)
+
+
 # Getting started
 
 You need docker and node installed first.
