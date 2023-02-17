@@ -29,10 +29,13 @@ python3 TTS/server/server.py --model_name tts_models/en/vctk/vits --use_cuda tru
 ```
 if you are having issues with the second command, please remove `--use_cuda true` from the command and try again.
 
+Github repository: https://github.com/coqui-ai/TTS
+
 ## STT server
 ```
 docker run --rm --name=sepia-stt -p 20741:20741 -it sepia/stt-server:dynamic_v1.0.0_amd64
 ```
+Github repository: https://github.com/SEPIA-Framework/sepia-stt-server
 
 # Discord server
 https://discord.gg/uDWBGSxX
