@@ -6,8 +6,10 @@ import {sendJSON, receiveJSONs, resetBuffer} from './utils.js'
 
 const fileName = 'recording.wav';
 let config = { prompt: ['The beauty and the beast'], sendActions: 'true', actions: ['Look to me', 'Look away'], newTokensLLM: '50', lastConversationsLLM: '5'};
+let socketGlobal;
 
 const server = net.createServer((socket) => {
+    socketGlobal = socket;
     console.log('client connected');
     resetBuffer();
 
@@ -276,3 +278,25 @@ const getCompletion = (text, type) => {
 // getCompletion('What can you do for me?').then(completion => {
 //     console.log('completion: ', JSON.stringify(completion));
 // });
+//Twitch Usage node server.js YOUR_OPEN_AI_API_KEY TWITCH_USERNAME TWITCH_OAUTH_TOKEN TWITCH_CHANNEL 
+import tmi from 'tmi.js';
+if (process.argv[3]) {
+    const client = new tmi.Client({
+        options: { debug: true },
+        identity: {
+            username: process.argv[3],
+            password: 'oauth:' + process.argv[4]
+        },
+        channels: [ process.argv[5] ]
+    });
+    client.connect().catch(console.error);
+    client.on('message', (channel, tags, message, self) => {
+        if(self) return;
+    
+        getCompletion(message, 'wav').then(completion => {
+            client.say(channel, `@${tags.username}, ${completion.text}`);
+            getVoice(completion.text, config.speakerId, socketGlobal, completion.action);
+        })
+        
+    });
+}

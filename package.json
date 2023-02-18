@@ -2,6 +2,7 @@
   "type": "module",
   "dependencies": {
     "net": "^1.0.2",
+    "tmi.js": "^1.8.5",
     "wav": "^1.0.2",
     "ws": "^8.12.1"
   }
