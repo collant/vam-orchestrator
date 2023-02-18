@@ -22,6 +22,11 @@ npm install
 node server.js YOUR_OPEN_AI_API_KEY
 ```
 
+To use with Twitch:
+```
+node server.js YOUR_OPEN_AI_API_KEY TWITCH_USERNAME TWITCH_OAUTH_TOKEN TWITCH_CHANNEL 
+```
+
 ## TTS server
 ``` 
 docker run --rm -it -p 5002:5002 --gpus all -v /c/vosk:/root/.local/share/ --entrypoint /bin/bash ghcr.io/coqui-ai/tts:v0.11.1
