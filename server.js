@@ -245,7 +245,7 @@ const getCompletion = (text, type) => {
             model: "text-davinci-003",
             prompt,
             max_tokens: parseInt(config.newTokensLLM),
-            temperature: 0,
+            temperature: 0.6,
             user: "First-user-2.3c00392c8a823b32989"
         })
       })
