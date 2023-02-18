@@ -3,6 +3,9 @@
 
 This is a node server that acts as an orchestrator between VAM, TTS server, STT server and LLM server (OpenAPI for the moment).
 
+![image](https://user-images.githubusercontent.com/125187079/219703449-7448f4cb-449d-4481-8f07-8a947c3c57e1.png)
+
+
 # Getting started
 
 You need docker and node installed first.
@@ -26,10 +29,13 @@ python3 TTS/server/server.py --model_name tts_models/en/vctk/vits --use_cuda tru
 ```
 if you are having issues with the second command, please remove `--use_cuda true` from the command and try again.
 
+Github repository: https://github.com/coqui-ai/TTS
+
 ## STT server
 ```
 docker run --rm --name=sepia-stt -p 20741:20741 -it sepia/stt-server:dynamic_v1.0.0_amd64
 ```
+Github repository: https://github.com/SEPIA-Framework/sepia-stt-server
 
 # Discord server
 https://discord.gg/uDWBGSxX
