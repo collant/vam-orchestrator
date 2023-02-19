@@ -1,14 +1,18 @@
 import net from 'net';
-import fs from 'fs';
 import wav from 'wav';
 import websocket from 'ws';
+import fetch from 'node-fetch'
 import {sendJSON, receiveJSONs, resetBuffer} from './utils.js'
 
-const fileName = 'recording.wav';
-let config = { prompt: ['The beauty and the beast'], sendActions: 'true', actions: ['Look to me', 'Look away'], newTokensLLM: '50', lastConversationsLLM: '5'};
-
 const server = net.createServer((socket) => {
-    console.log('client connected');
+    console.log('New client connected');
+
+    let config = { prompt: ['The beauty and the beast'], sendActions: 'true', actions: ['Look to me', 'Look away'], newTokensLLM: '50', lastConversationsLLM: '5'};
+    const history = [
+        {actor: botName, text: 'How can I be of help'},
+        {actor: humanName, text: 'I want some love in my life.'},
+        {actor: botName, text: 'I can help with that'}
+    ]
     resetBuffer();
 
     receiveJSONs(socket, (json) => {
@@ -16,12 +20,12 @@ const server = net.createServer((socket) => {
         console.log(config)
         if (json.type === 'wav') {
             handlePayload(json.payload, (transcript) => {
-                handleTranscript(transcript, 'wav', socket)
+                handleTranscript(transcript, 'wav', socket, history, config)
             })
         }
         if (json.type === 'trigger') {
             let trigger = json.triggerName;
-            handleTranscript("User has touched your " + trigger, 'trigger', socket)
+            handleTranscript("User has touched your " + trigger, 'trigger', socket, history, config)
         }
     })
     socket.on('end', () => {
@@ -37,23 +41,25 @@ server.listen(8000, () => {
 });
 
 
-const handleTranscript = (transcript, type, socket) => {
+const handleTranscript = (transcript, type, socket, history, config) => {
     let transcriptNotEmpty = transcript != '' ? transcript : "Sorry, I didn't get that";
     if (config.sendToLLM == 'true') {
         console.log('sending to LLM');
-        getCompletion(transcriptNotEmpty, type).then(completion => {
-            getVoice(completion.text, config.speakerId, socket, completion.action);
+        getCompletion(transcriptNotEmpty, type, history, config).then(completion => {
+            getVoice(completion.text, config.speakerId, socket, completion.action, history);
         })
     }
     if (config.echoBack == 'true') {
         console.log('echoing back');
-        getVoice(transcriptNotEmpty, config.speakerId, socket);
+        getVoice(transcriptNotEmpty, config.speakerId, socket, undefined, history);
     }
     if (config.echoBack == 'false' && config.sendToLLM == 'false') {
         var json = {
             type: 'text',
             text: transcriptNotEmpty,
-            config: getConfig()
+            config: {
+                history
+            }
         }
         if (socket) {
             const jsonString = JSON.stringify(json);
@@ -90,7 +96,7 @@ const handlePayload = (wavPayload, onTranscriptReady) => {
     writer.end();
 }
 
-const getVoice = (text, speakerId, socket, action) => {
+const getVoice = (text, speakerId, socket, action, history) => {
     let url = "http://localhost:5002/api/tts?text=" + text + "&speaker_id=" + speakerId + "&style_wav="
 
     console.log('getting voice for: ', text);
@@ -123,15 +129,15 @@ const getVoice = (text, speakerId, socket, action) => {
                     channels: header.channels,
                     text,
                     action: action || "",
-                    config: getConfig()
+                    config: {
+                        history
+                    }
                 }
                 if (socket) {
                     const jsonString = JSON.stringify(json);
                     sendJSON(jsonString, socket);
                 }
-            });
-
-            
+            });            
             reader.write(fileBuffer);
             reader.end();
             return resolve(buffer.length)
@@ -141,14 +147,6 @@ const getVoice = (text, speakerId, socket, action) => {
 
 }
 
-// getVoice("Hi there")
-
-const getConfig = () => {
-    const config = {
-        history
-    }
-    return config
-}
 
 const transcribe = (wavFileBytes, onTranscript) => {
     console.log('transcribing...');
@@ -199,16 +197,9 @@ const transcribe = (wavFileBytes, onTranscript) => {
     })
 }
 
-
 const botName = 'Bot';
 const humanName = 'User';
-
-const history = [
-    {actor: botName, text: 'How can I be of help'},
-    {actor: humanName, text: 'I want some love in my life.'},
-    {actor: botName, text: 'I can help with that'}
-]
-const getCompletion = (text, type) => {
+const getCompletion = (text, type, history, config) => {
     if (type == 'trigger') {
         history.push({actor: '', text});
     } else {
@@ -232,8 +223,8 @@ const getCompletion = (text, type) => {
     }, '');
     prompt+= '\nHistory:' + historyString + '\n\n'
 
-    console.log('sending this prompt: ', prompt)
-    const apiKey = process.argv[2];
+    console.log('sending this prompt: \n', prompt)
+    const apiKey = process.argv[2] || config.apiKey;
     return new Promise((resolve, reject) => {
       fetch('https://api.openai.com/v1/completions', {
         method: 'POST',
@@ -252,21 +243,31 @@ const getCompletion = (text, type) => {
         .then(response => response.json())
         .then(result => {
             console.log(JSON.stringify(result, null, 2))
-            let completion = result.choices[0].text;
-            console.log('completion', completion)
             try {
+                let completion = result.choices[0].text;
+                console.log('completion', completion)
                 let parsed = JSON.parse(completion);
                 // completion = completion.split('\n').join('').replace(/^\s+/g, '');
                 history.push({actor: botName, text: parsed.text})
                 //console.log('history: ', history);
                 resolve(parsed);
             } catch(e) {
-                let withError = {
-                    action: "",
-                    text: completion,
-                    error: "cannot parse the answer"
-                };
-                resolve(withError);
+                if (result && result.error && result.error.message) {
+                    let withError = {
+                        action: "",
+                        text: result.error.message,
+                        error: "OpenAI error"
+                    };
+                    resolve(withError);
+                } else {
+                    let withError = {
+                        action: "",
+                        text: "Cannot parse the answer",
+                        error: "cannot parse the answer"
+                    };
+                    resolve(withError);
+                }
+                
             }
         })
         .catch(error => reject(error));

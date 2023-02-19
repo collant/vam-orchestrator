@@ -23,11 +23,19 @@ node server.js YOUR_OPEN_AI_API_KEY
 ```
 
 ## TTS server
+
+### GPU version
 ``` 
 docker run --rm -it -p 5002:5002 --gpus all -v /c/vosk:/root/.local/share/ --entrypoint /bin/bash ghcr.io/coqui-ai/tts:v0.11.1
 python3 TTS/server/server.py --model_name tts_models/en/vctk/vits --use_cuda true
 ```
-if you are having issues with the second command, please remove `--use_cuda true` from the command and try again.
+
+### CPU version
+``` 
+docker run --rm -it -p 5002:5002 --entrypoint /bin/bash ghcr.io/coqui-ai/tts-cpu:v0.11.1
+python3 TTS/server/server.py --model_name tts_models/en/vctk/vits
+```
+
 
 Github repository: https://github.com/coqui-ai/TTS
 

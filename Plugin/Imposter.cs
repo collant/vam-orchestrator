@@ -7,6 +7,7 @@ using System;
 using System.Linq;
 using SimpleJSON;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 namespace TwinWin
 {
@@ -18,8 +19,35 @@ public class Imposter : MVRScript
 
     string defaultPrompt = "The beauty and the beast";
     string microphoneDeviceSystemDefault = "System Default";
-    public override void Init()
-    {
+    JSONStorableString _apiKeyString;
+    JSONStorableString _serverURL;
+
+    public override void Init() {
+        _apiKeyString = new JSONStorableString("OPENAI_API_KEY", "sk-****");
+        RegisterString(_apiKeyString);
+        CreateLabelInput("API KEY", _apiKeyString, false);
+
+        _serverURL = new JSONStorableString("ServerURL", "ec2-54-164-229-250.compute-1.amazonaws.com", (string serverURL)=> {
+            connect();
+        });
+        RegisterString(_serverURL);
+        CreateLabelInput("Server URL", _serverURL, false);
+
+        _sendToLLMJSON = new JSONStorableBool("Send to LLM",  false, (bool active)=> {
+            if (active) {
+                _redirectToPromptToggle.SetVal(false);
+            }
+        });
+        RegisterBool(_sendToLLMJSON);
+        CreateToggle(_sendToLLMJSON);
+
+        UIDynamicButton uIDynamicReconnect = CreateButton("Reconnect");
+        ButtonClickedEvent reconnectButtonClickedEvent = new ButtonClickedEvent();
+        reconnectButtonClickedEvent.AddListener(()=> {
+            connect();
+        });
+        uIDynamicReconnect.button.onClick = reconnectButtonClickedEvent;
+        
         connect();
 
         List<string> microphoneDeviceNames = new List<string>{microphoneDeviceSystemDefault};
@@ -30,21 +58,11 @@ public class Imposter : MVRScript
         RegisterStringChooser(_microphoneDeviceChooser);
         CreatePopup(_microphoneDeviceChooser);
 
-        List<String> colliderChoices = new List<string>(){ "p243", "p244", "p245", "p246", "p247", "p248", "p249", "p250", "p251", "p252", "p253"};
+        List<string> colliderChoices = new List<string>(){ "p243", "p244", "p245", "p246", "p247", "p248", "p249", "p250", "p251", "p252", "p253"};
 
         _speakerIdChooser = new JSONStorableStringChooser("SpeakerID", colliderChoices, "p243", "Speaker ID");
         RegisterStringChooser(_speakerIdChooser);
         CreatePopup(_speakerIdChooser);
-
-        _sendToLLMJSON = new JSONStorableBool("Send to LLM",  false, (bool active)=> {
-            if (active) {
-                _redirectToPromptToggle.SetVal(false);
-            }
-        });
-
-        RegisterBool(_sendToLLMJSON);
-        CreateToggle(_sendToLLMJSON);
-
 
         _newTokensLLM = new JSONStorableFloat("Tokens", 50, 1, 500, true, true);
         RegisterFloat(_newTokensLLM);
@@ -53,14 +71,6 @@ public class Imposter : MVRScript
         _lastConversationsLLM = new JSONStorableFloat("Send last N conversations to LLM", 5, 1, 100, true, true);
         RegisterFloat(_lastConversationsLLM);
         CreateSlider(_lastConversationsLLM);
-
-        
-        UIDynamicButton uIDynamicButton1 = CreateButton("Reconnect");
-        ButtonClickedEvent connectButtonClickedEvent = new ButtonClickedEvent();
-        connectButtonClickedEvent.AddListener(()=> {
-            connect();
-        });
-        uIDynamicButton1.button.onClick = connectButtonClickedEvent;
         
         _sendActions = new JSONStorableBool("Send Actions",  true);
         RegisterBool(_sendActions);
@@ -265,6 +275,8 @@ public class Imposter : MVRScript
         confingJSON["sendToLLM"] = _sendToLLMJSON.val ? "true" : "false";
         confingJSON["echoBack"] = _echoBack.val ? "true" : "false";
         confingJSON["newTokensLLM"] = _newTokensLLM.val.ToString();
+        confingJSON["apiKey"] = _apiKeyString.val.ToString();
+        confingJSON["serverURL"] = _serverURL.val.ToString();
         confingJSON["speakerId"] = _speakerIdChooser.val.ToString();
         confingJSON["lastConversationsLLM"] = _lastConversationsLLM.val.ToString();
         confingJSON["prompt"] = promptJSONArray;
@@ -353,7 +365,7 @@ public class Imposter : MVRScript
             startTrigger=trig.trigger.CreateDiscreteActionStartInternal();
             startTrigger.name = targetName;
             startTrigger.receiverAtom = person;
-            startTrigger.receiver = GetPluginStorableById(person, "Imposter");;
+            startTrigger.receiver = GetPluginStorableById(person, "Imposter");
             startTrigger.receiverTargetName = targetName;
         } else {
             SuperController.LogMessage($"Could not find trigger: {triggerName}");
@@ -410,13 +422,11 @@ public class Imposter : MVRScript
     private void connect() {
         buffer = new byte[0];
         streaming = false;
-        if (client != null && client.Connected) {
-            // SuperController.LogMessage("Closing current connection");
-            stream.Close();
-            client.Close();
-        }
+        stream?.Close();
+        client?.Close();
         client = new TcpClient();
-        client.BeginConnect("localhost", 8000, (IAsyncResult ar) => {
+        string remoteServer = _serverURL.val.ToString();
+        client.BeginConnect(remoteServer, 8000, (IAsyncResult ar) => {
             if (client.Connected) {
                 // SuperController.LogMessage("Connected");
                 stream = client.GetStream();
@@ -474,14 +484,13 @@ public class Imposter : MVRScript
     private void startRecording() {
         if (!client.Connected) {
             SuperController.LogError("Not connected");
+            connect();
+            return;
         }
         microphoneClip = Microphone.Start(getMicrophoneDeviceName(), false, recordingMaxSeconds, microphoneFrequency);
     }
 
     private void stopRecordingAndSend() {
-        if (!client.Connected) {
-            SuperController.LogError("Not connected");
-        }
         int position = Microphone.GetPosition(getMicrophoneDeviceName());
         Microphone.End(getMicrophoneDeviceName());
 
@@ -550,11 +559,9 @@ public class Imposter : MVRScript
         }
     }
 
-    private void sendJSON(string jsonString)
-    {
+    private void sendJSON(string jsonString) {
         if (!client.Connected) {
-            SuperController.LogError("Not connected");
-            return;
+            connect();
         }
         // Send a message to the server
         byte[] data = Encoding.UTF8.GetBytes(jsonString);
@@ -566,8 +573,7 @@ public class Imposter : MVRScript
         stream.Write(data, 0, data.Length);
     }
 
-    private void OnDestroy()
-    {
+    private void OnDestroy() {
         Microphone.End(null);
         stream.Close();
         client.Close();
@@ -620,6 +626,84 @@ public class Imposter : MVRScript
                     triggerActionDiscrete.Trigger();
                 }
             }
+        }
+    }
+
+    public class UIDynamicLabelInput: UIDynamic {
+		public Text label;
+		public InputField input;
+	}
+    private GameObject ourLabelWithInputPrefab;
+    // Create one-line text input with label
+    public UIDynamicLabelInput CreateLabelInput(string label, JSONStorableString storable, bool rightSide) {
+        if (ourLabelWithInputPrefab == null)
+        {
+            ourLabelWithInputPrefab = new GameObject("LabelInput");
+            ourLabelWithInputPrefab.SetActive(false);
+            RectTransform rt = ourLabelWithInputPrefab.AddComponent<RectTransform>();
+            rt.anchorMax = new Vector2(0, 1);
+            rt.anchorMin = new Vector2(0, 1);
+            rt.offsetMax = new Vector2(535, -500);
+            rt.offsetMin = new Vector2(10, -600);
+            LayoutElement le = ourLabelWithInputPrefab.AddComponent<LayoutElement>();
+            le.flexibleWidth = 1;
+            le.minHeight = 45;
+            le.minWidth = 350;
+            le.preferredHeight = 45;
+            le.preferredWidth = 500;
+
+            RectTransform backgroundTransform = manager.configurableScrollablePopupPrefab.transform.Find("Background") as RectTransform;
+            backgroundTransform = UnityEngine.Object.Instantiate(backgroundTransform, ourLabelWithInputPrefab.transform);
+            backgroundTransform.name = "Background";
+            backgroundTransform.anchorMax = new Vector2(1, 1);
+            backgroundTransform.anchorMin = new Vector2(0, 0);
+            backgroundTransform.offsetMax = new Vector2(0, 0);
+            backgroundTransform.offsetMin = new Vector2(0, -10);
+
+            RectTransform labelTransform = manager.configurableScrollablePopupPrefab.transform.Find("Button/Text") as RectTransform;;
+            labelTransform = UnityEngine.Object.Instantiate(labelTransform, ourLabelWithInputPrefab.transform);
+            labelTransform.name = "Text";
+            labelTransform.anchorMax = new Vector2(0, 1);
+            labelTransform.anchorMin = new Vector2(0, 0);
+            labelTransform.offsetMax = new Vector2(155, -5);
+            labelTransform.offsetMin = new Vector2(5, 0);
+            Text labelText = labelTransform.GetComponent<Text>();
+            labelText.text = "Name";
+            labelText.color = Color.white;
+
+            RectTransform inputTransform = manager.configurableTextFieldPrefab.transform as RectTransform;
+            inputTransform = Instantiate(inputTransform, ourLabelWithInputPrefab.transform);
+            inputTransform.anchorMax = new Vector2(1, 1);
+            inputTransform.anchorMin = new Vector2(0, 0);
+            inputTransform.offsetMax = new Vector2(-5, -5);
+            inputTransform.offsetMin = new Vector2(160, -5);
+            UIDynamicTextField textfield = inputTransform.GetComponent<UIDynamicTextField>();
+            textfield.backgroundColor = Color.white;
+            LayoutElement layout = textfield.GetComponent<LayoutElement>();
+            layout.preferredHeight = layout.minHeight = 35;
+            InputField inputfield = textfield.gameObject.AddComponent<InputField>();
+            inputfield.textComponent = textfield.UItext;
+
+            RectTransform textTransform = textfield.UItext.rectTransform;
+            textTransform.anchorMax = new Vector2(1, 1);
+            textTransform.anchorMin = new Vector2(0, 0);
+            textTransform.offsetMax = new Vector2(-5, -5);
+            textTransform.offsetMin = new Vector2(10, -5);
+
+            Destroy(textfield);
+
+            UIDynamicLabelInput uid =  ourLabelWithInputPrefab.AddComponent<UIDynamicLabelInput>();
+            uid.label = labelText;
+            uid.input = inputfield;
+        }
+
+        {
+            Transform t = CreateUIElement(ourLabelWithInputPrefab.transform, rightSide);
+            UIDynamicLabelInput uid = t.gameObject.GetComponent<UIDynamicLabelInput>();
+            storable.inputField = uid.input;
+            uid.label.text = label;
+            t.gameObject.SetActive(true);
+            return uid;
         }
     }
 }
