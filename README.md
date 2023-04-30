@@ -46,7 +46,7 @@ docker run --rm --name=sepia-stt -p 20741:20741 -it sepia/stt-server:dynamic_v1.
 Github repository: https://github.com/SEPIA-Framework/sepia-stt-server
 
 # Discord server
-https://discord.gg/uDWBGSxX
+https://discord.gg/GqN3STn8U8
 
 # Patreon
 https://patreon.com/TwinWin
