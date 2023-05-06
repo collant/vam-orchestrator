@@ -1,31 +1,63 @@
 
 # VAM Orchestrator
 
-This is a node server that acts as an orchestrator between VAM, TTS server, STT server and LLM server (OpenAPI for the moment).
-
-![image](https://user-images.githubusercontent.com/125187079/219703449-7448f4cb-449d-4481-8f07-8a947c3c57e1.png)
+This is a node server that acts as an orchestrator between VAM, Speech and LLM server.
 
 
 # Getting started
 
-You need docker and node installed first.
+You need docker, conda and node installed first.
 
-You need to run three servers: node server, TTS server and STT server. So prepare three terminals for those servers.
+You need to run five servers: node server, TTS server, STT server, Speech server and LLM server. So prepare five terminals for those servers.
 
 ## Node server
 
-For the moment, we are going to use OpenAI Completion API, you need to get your OpenAI API KEY.
-
-inside the root folder of this repository, you should run
+Inside the root folder of this repository, you can run
 ```
 npm install
-node server.js YOUR_OPEN_AI_API_KEY
+node server.js
+```
+
+## LLM server
+
+First install conda: https://www.anaconda.com/download/
+
+### Create a new conda environment
+
+```bash
+conda create --name imposter
+conda activate imposter
+```
+
+### Install Pytorch
+
+Windows/Linux:
+
+```bash
+conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
+```
+
+If you have any errors, please create a new conda environment and install Pytorch following this page: https://pytorch.org/get-started/locally/
+
+
+### Install requirements
+
+```bash
+cd LLM
+pip install -r requirements.txt
+```
+
+### Running
+
+```bash
+conda activate imposter
+python run.py
 ```
 
 ## TTS server
 
 ### GPU version
-``` 
+```bash
 docker run --rm -it -p 5002:5002 --gpus all -v /c/vosk:/root/.local/share/ --entrypoint /bin/bash ghcr.io/coqui-ai/tts:v0.11.1
 python3 TTS/server/server.py --model_name tts_models/en/vctk/vits --use_cuda true
 ```
@@ -40,10 +72,15 @@ python3 TTS/server/server.py --model_name tts_models/en/vctk/vits
 Github repository: https://github.com/coqui-ai/TTS
 
 ## STT server
-```
+```bash
 docker run --rm --name=sepia-stt -p 20741:20741 -it sepia/stt-server:dynamic_v1.0.0_amd64
 ```
 Github repository: https://github.com/SEPIA-Framework/sepia-stt-server
+
+## Speech server
+```bash
+node speech.js
+```
 
 # Discord server
 https://discord.gg/uDWBGSxX
@@ -57,17 +94,13 @@ https://patreon.com/TwinWin
 - Receive triggers (events) from VAM.
 - Send actions to VAM.
 - Story generation inside VAM.
-- Use OpenAPI for completion.
+- Use open source LLM for completion.
 - Use Coqui tts for speech generation.
 - Use Sepia stt for speech recognition.
 
 # TODO
-- Use an open source completion server.
-- Better lipsync plugin.
-- Host a paid solution for non technical users.
-- Use an embeddings cache.
 - Use stories providers.
-- Voice muxer with background noise.
+- Voice muxer with background noise, laughs, ...
 
 # Contributors guide
 - No refactoring.
@@ -77,4 +110,3 @@ https://patreon.com/TwinWin
 - Multiple actors.
 - Use embeddings for history.
 - Support multiple languages.
-

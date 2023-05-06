@@ -17,29 +17,31 @@ public class Imposter : MVRScript
     protected TcpClient client;
     protected NetworkStream stream;
 
-    string defaultPrompt = "The beauty and the beast";
     string microphoneDeviceSystemDefault = "System Default";
-    JSONStorableString _apiKeyString;
     JSONStorableString _serverURL;
 
-    public override void Init() {
-        _apiKeyString = new JSONStorableString("OPENAI_API_KEY", "sk-****");
-        RegisterString(_apiKeyString);
-        CreateLabelInput("API KEY", _apiKeyString, false);
+    string secret = "982lksjdfs823dsf98-239sdssd-329832";
+    string host = "localhost";
+    int browserPort = 8081;
+    int orchestratorPort = 8000;
 
-        _serverURL = new JSONStorableString("ServerURL", "ec2-54-164-229-250.compute-1.amazonaws.com", (string serverURL)=> {
+    string webPanelAtomID = "ImposterSubScene/Browser";
+
+    public override void Init() {
+
+        secret = Guid.NewGuid().ToString();
+        Atom webPanel = GetAtomById(webPanelAtomID);
+        VRWebBrowser vRWebBrowser = (VRWebBrowser)webPanel.GetStorableByID("BrowserGUI");
+        vRWebBrowser.url = "";
+        vRWebBrowser.url = "http://" + host + ":" + browserPort + "/?secret=" + secret;
+
+
+        _serverURL = new JSONStorableString("ServerURL", host, (string serverURL)=> {
             connect();
         });
         RegisterString(_serverURL);
         CreateLabelInput("Server URL", _serverURL, false);
 
-        _sendToLLMJSON = new JSONStorableBool("Send to LLM",  false, (bool active)=> {
-            if (active) {
-                _redirectToPromptToggle.SetVal(false);
-            }
-        });
-        RegisterBool(_sendToLLMJSON);
-        CreateToggle(_sendToLLMJSON);
 
         UIDynamicButton uIDynamicReconnect = CreateButton("Reconnect");
         ButtonClickedEvent reconnectButtonClickedEvent = new ButtonClickedEvent();
@@ -64,18 +66,12 @@ public class Imposter : MVRScript
         RegisterStringChooser(_speakerIdChooser);
         CreatePopup(_speakerIdChooser);
 
-        _newTokensLLM = new JSONStorableFloat("Tokens", 50, 1, 500, true, true);
-        RegisterFloat(_newTokensLLM);
-        CreateSlider(_newTokensLLM);
-
-        _lastConversationsLLM = new JSONStorableFloat("Send last N conversations to LLM", 5, 1, 100, true, true);
-        RegisterFloat(_lastConversationsLLM);
-        CreateSlider(_lastConversationsLLM);
         
         _sendActions = new JSONStorableBool("Send Actions",  true);
         RegisterBool(_sendActions);
         CreateToggle(_sendActions);
-        MotionAnimationMaster motionAnimationMaster = (MotionAnimationMaster) GetAtomById("CoreControl").GetStorableByID("MotionAnimationMaster");
+        
+        MotionAnimationMaster motionAnimationMaster = GetAtomById(webPanelAtomID).containingSubScene.motionAnimationMaster;
         _actionLoader = new ActionLoader(motionAnimationMaster);
         List<string> allActions = _actionLoader.getActionNames();
         string listOfActions = "Available actions:\n";
@@ -104,47 +100,24 @@ public class Imposter : MVRScript
         _pushToTalkToggle = new JSONStorableBool("Push To Talk",  true);
         RegisterBool(_pushToTalkToggle);
         CreateToggle(_pushToTalkToggle, true);
-
-        _echoBack = new JSONStorableBool("Echo back",  true);
-        RegisterBool(_echoBack);
-        CreateToggle(_echoBack, true);
-        _recognizedTextTextField = new JSONStorableString("echoBackTextField", "Recognized text:");
-        CreateTextField(_recognizedTextTextField, true);
         
         CreateSpacer(true);
 
-        _redirectToPromptToggle = new JSONStorableBool("Redirect Voice To Story",  false, (bool active)=> {
-            if (active) {
-                _sendToLLMJSON.SetVal(false);
-            }
-        });
-        RegisterBool(_redirectToPromptToggle);
-        CreateToggle(_redirectToPromptToggle, true);
-
-        _promptStorableString = new JSONStorableString("promptyTextField", "Story:");
-        RegisterString(_promptStorableString);
-        CreateTextField(_promptStorableString, true);
-
-        promptJSONArray.Add(defaultPrompt);
-        refreshPromptUI();
-        UIDynamicButton removeLastLine = CreateButton("Remove last line in Story", true);
-        ButtonClickedEvent removeLastLineButtonClickedEvent = new ButtonClickedEvent();
-        removeLastLineButtonClickedEvent.AddListener(()=> {
-            removePromptLastLine();
-        });
-        removeLastLine.button.onClick = removeLastLineButtonClickedEvent;
-
-        _conversationHistory = new JSONStorableString("conversationHistoryTextField", "Conversation History:");
-        CreateTextField(_conversationHistory, true);
-
-        StartCoroutine(getConfigWithCorouting(3));
     }
 
-    private IEnumerator getConfigWithCorouting(float waitTime)
+    private IEnumerator handshake(float waitTime)
     {
         yield return new WaitForSeconds(waitTime);
         // SuperController.LogMessage($"WaitAndPrint: {Time.time}");
-        getConfig();
+                
+        JSONNode jSONNode = JSON.Parse("{}");
+        jSONNode.Add("type", "handshake");
+        jSONNode.Add("payload", "vam");
+        jSONNode.Add("secret", secret);
+        JSONNode config = getConfig();
+        jSONNode.Add("config", config);
+
+        sendJSON(jSONNode.ToString());
     }
 
     private IEnumerator startRecordingWithCorouting(float waitTime)
@@ -152,62 +125,30 @@ public class Imposter : MVRScript
         yield return new WaitForSeconds(waitTime);
         startRecording();
     }
-    JSONArray promptJSONArray = new JSONArray();
 
-    private void removePromptLastLine() {
-        if (promptJSONArray.Count > 0) {
-            promptJSONArray.Remove(promptJSONArray.Count - 1);
+
+    private IEnumerator triggerActionWithCoroutine(float waitTime, string actionName)
+    {
+        yield return new WaitForSeconds(waitTime);
+        try {
+            _actionLoader.trigger(actionName);
+        } catch (Exception e) {
+            SuperController.LogMessage($"Exception: {e.Message}");
         }
-        refreshPromptUI();
-    }
-    private void refreshPromptUI() {
-        string prompt = jSONArrayToUIString(promptJSONArray);
-        _promptStorableString.SetVal(prompt);
     }
 
-    private string jSONArrayToUIString(JSONArray jSONArray) {
-        string resultString = "Story:";
-        for (int i = 0; i < jSONArray.Count; i++) {
-            string element = jSONArray[i];
-            resultString+= $"\n{element}";
-        }
-        return resultString;
-    }
     private void onMessageReceived(string message) {
         // SuperController.LogMessage($"message: {message}");
         JSONNode jSONNode = JSON.Parse(message);
         string transcript = jSONNode["text"];
-        if (transcript != null) {
-            _recognizedTextTextField.SetVal($"Recognized text:\n{transcript}");
-            if (_redirectToPromptToggle.val) {
-                promptJSONArray.Add(transcript);
-                refreshPromptUI();
-            }
-        }
         string actionName = jSONNode["action"];
         if (actionName != null && !actionName.Equals("")) {
-            try {
-                _actionLoader.trigger(actionName);
-            } catch (Exception e) {
-                SuperController.LogMessage($"Exception: {e.Message}");
-            }
+            StartCoroutine(triggerActionWithCoroutine(0.1f, "IncludePhysical"));
+            StartCoroutine(triggerActionWithCoroutine(0.1f, "DontIncludeAppearance"));
+            StartCoroutine(triggerActionWithCoroutine(0.1f, actionName));
+            return;
         }
 
-        var config = jSONNode["config"];
-        if (config != null) {
-            // SuperController.LogMessage($"config: {config}");
-            JSONArray historyJSON = config["history"].AsArray;
-            string historyString = "Conversation History:";
-            if (historyJSON != null) {
-                for (int i = 0; i < historyJSON.Count; i++) {
-                    JSONNode historyElement = historyJSON[i];
-                    string actor = historyElement["actor"];
-                    string text = historyElement["text"];
-                    historyString+= $"\n{actor}: {text}";
-                }
-            }
-            _conversationHistory.SetVal(historyString);
-        }
         string type = jSONNode["type"];
         if (type != null && type.Equals("wav")) {
             int sampleRate = jSONNode["sampleRate"].AsInt;
@@ -226,33 +167,35 @@ public class Imposter : MVRScript
             AudioClip receivedAudioClip = AudioClip.Create("nodeJS", floatArray.Length, channels, sampleRate, false);
             receivedAudioClip.SetData(floatArray, 0);
             // receivedAudioClip.LoadAudioData();
-            JSONStorable headAudio = containingAtom.GetStorableByID("HeadAudioSource");
-            NamedAudioClip namedAudioClip = new NamedAudioClip
+            if (headAudio == null) {
+                headAudio = containingAtom.GetStorableByID("HeadAudioSource");
+            }
+            namedAudioClip = new NamedAudioClip
             {
                 sourceClip = receivedAudioClip,
                 displayName = "recorded"
             };
-            headAudio.CallAction("PlayNow", namedAudioClip);
-            // SuperController.LogMessage("Playing audio");
+            StartCoroutine(playAudio(0.01f));
         }
+    }
+
+    JSONStorable headAudio;
+    NamedAudioClip namedAudioClip;
+
+    private IEnumerator playAudio(float waitTime)
+    {
+        yield return new WaitForSeconds(waitTime);
+        headAudio.CallAction("PlayNow", namedAudioClip);
     }
 
     ActionLoader _actionLoader;
     JSONArray _triggerList;
-    private JSONStorableBool _sendToLLMJSON;
     private JSONStorableBool _pushToTalkToggle;
-    private JSONStorableBool _echoBack;
     private JSONStorableBool _sendActions;
     private JSONStorableString _triggersTextField;
     private JSONStorableBool _sendTriggers;
-    private JSONStorableFloat _newTokensLLM;
-    private JSONStorableFloat _lastConversationsLLM;
     private JSONStorableStringChooser _speakerIdChooser;
     private JSONStorableStringChooser _microphoneDeviceChooser;
-    private JSONStorableBool _redirectToPromptToggle;
-    private JSONStorableString _promptStorableString;
-    private JSONStorableString _conversationHistory;
-    private JSONStorableString _recognizedTextTextField;
     private JSONNode getConfig() {
         JSONNode confingJSON = JSONNode.Parse("{}");
         
@@ -272,15 +215,8 @@ public class Imposter : MVRScript
             confingJSON["actions"] = allActionsArray;
         }
         
-        confingJSON["sendToLLM"] = _sendToLLMJSON.val ? "true" : "false";
-        confingJSON["echoBack"] = _echoBack.val ? "true" : "false";
-        confingJSON["newTokensLLM"] = _newTokensLLM.val.ToString();
-        confingJSON["apiKey"] = _apiKeyString.val.ToString();
         confingJSON["serverURL"] = _serverURL.val.ToString();
         confingJSON["speakerId"] = _speakerIdChooser.val.ToString();
-        confingJSON["lastConversationsLLM"] = _lastConversationsLLM.val.ToString();
-        confingJSON["prompt"] = promptJSONArray;
-        confingJSON["redirectToPrompt"] = _redirectToPromptToggle.val ? "true" : "false";
         confingJSON["pushToTalk"] = _pushToTalkToggle.val ? "true" : "false";
 
         // SuperController.LogMessage($"confingJSON: {confingJSON}");
@@ -426,11 +362,14 @@ public class Imposter : MVRScript
         client?.Close();
         client = new TcpClient();
         string remoteServer = _serverURL.val.ToString();
-        client.BeginConnect(remoteServer, 8000, (IAsyncResult ar) => {
+        client.BeginConnect(remoteServer, orchestratorPort, (IAsyncResult ar) => {
             if (client.Connected) {
-                // SuperController.LogMessage("Connected");
                 stream = client.GetStream();
+
+                StartCoroutine(handshake(3));
+
                 ReceiveMessages();
+
             } else {
                 SuperController.LogMessage("Could not connect");
             }
@@ -512,49 +451,57 @@ public class Imposter : MVRScript
         jSONNode.Add("payload", base64String);
         JSONNode config = getConfig();
         jSONNode.Add("config", config);
+        jSONNode.Add("secret", secret);
 
         sendJSON(jSONNode.ToString());
     }
 
     int recordingMaxSeconds = 60;
     
-    JSONNode inputInfoPersist = JSON.Parse("{}");
 
     byte[] buffer = new byte[0];
     bool streaming = false;
-    int headerLength = 0;
+    int bodyLength = 0;
     private void ReceiveMessages()
     {
         while (true)
         {
             if (stream.DataAvailable)
             {
-                // Read the data from the stream
-                byte[] container = new byte[client.ReceiveBufferSize];
-                // SuperController.LogMessage("client.ReceiveBufferSize: " + container.Length);
-                int bytesRead = stream.Read(container, 0, container.Length);
-                byte[] data = new byte[bytesRead];
-                Array.Copy(container, 0, data, 0, bytesRead);//use circular reference instead
-                buffer = buffer.Concat(data).ToArray();
-                if (!streaming) {
-                    streaming = true;
-                    byte[] headerBytes = buffer.Take(4).ToArray();
-                    headerLength = (headerBytes[0] << 24) | (headerBytes[1] << 16) | (headerBytes[2] << 8) | headerBytes[3];
-                    byte[] newArray = new byte[buffer.Length - 4];
-                    Array.Copy(buffer, 4, newArray, 0, newArray.Length);//use circular reference instead
-                    buffer = newArray;
+                try {
+                    //SuperController.LogMessage($"Stream DataAvailable");
+                    // Read the data from the stream
+                    byte[] container = new byte[client.ReceiveBufferSize];
+                    // SuperController.LogMessage("client.ReceiveBufferSize: " + container.Length);
+                    int bytesRead = stream.Read(container, 0, container.Length);
+                    byte[] data = new byte[bytesRead];
+                    Array.Copy(container, 0, data, 0, bytesRead);//use circular reference instead
+                    buffer = buffer.Concat(data).ToArray();
+                    while (true) {
+                        if (!streaming && buffer.Length >= 4) {
+                            streaming = true;
+                            byte[] headerBytes = buffer.Take(4).ToArray();
+                            bodyLength = (headerBytes[0] << 24) | (headerBytes[1] << 16) | (headerBytes[2] << 8) | headerBytes[3];
+                            byte[] newArray = new byte[buffer.Length - 4];
+                            Array.Copy(buffer, 4, newArray, 0, newArray.Length);//use circular reference instead
+                            buffer = newArray;
+                        } else if (streaming && buffer.Length >= bodyLength) {
+                            byte[] bytes = buffer.Take(bodyLength).ToArray();
+                            byte[] newArray = new byte[buffer.Length - bodyLength];
+                            Array.Copy(buffer, bodyLength, newArray, 0, newArray.Length);//use circular reference instead
+                            buffer = newArray;
+                            string message = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
+                            streaming = false;
+                            // SuperController.LogMessage("Rest in buffer to read: " + buffer.Length);
+                            onMessageReceived(message);
+                        } else {
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    SuperController.LogMessage($"Exception in Socket Stream: ${e.Message}");
                 }
-                if (buffer.Length >= headerLength) {
-                    byte[] bytes = buffer.Take(headerLength).ToArray();
-                    byte[] newArray = new byte[buffer.Length - headerLength];
-                    Array.Copy(buffer, headerLength, newArray, 0, newArray.Length);//use circular reference instead
-                    buffer = newArray;
-                    string message = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
-                    streaming = false;
-                    onMessageReceived(message);
-                } else {
-                    // SuperController.LogMessage("Chunking with buffer.length: " + buffer.Length);
-                }
+                
             }
         }
     }
@@ -565,7 +512,7 @@ public class Imposter : MVRScript
         }
         // Send a message to the server
         byte[] data = Encoding.UTF8.GetBytes(jsonString);
-        int headerLength = data.Length;
+        int bodyLength = data.Length;
         int uint32 = data.Length;//TODO check unsigned
         byte[] headerBytes = new byte[] { (byte)(uint32 >> 24), (byte)(uint32 >> 16), (byte)(uint32 >> 8), (byte)uint32 };
         
