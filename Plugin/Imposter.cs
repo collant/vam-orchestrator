@@ -22,7 +22,7 @@ public class Imposter : MVRScript
 
     string secret = "982lksjdfs823dsf98-239sdssd-329832";
     string host = "localhost";
-    int browserPort = 8081;
+    int browserPort = 8080;
     int orchestratorPort = 8000;
 
     string webPanelAtomID = "ImposterSubScene/Browser";
