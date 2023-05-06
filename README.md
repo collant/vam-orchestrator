@@ -83,7 +83,7 @@ node speech.js
 ```
 
 # Discord server
-https://discord.gg/uDWBGSxX
+https://discord.gg/GqN3STn8U8
 
 # Patreon
 https://patreon.com/TwinWin
