@@ -10,6 +10,10 @@ You need docker, conda and node installed first.
 
 You need to run five servers: node server, TTS server, STT server, Speech server and LLM server. So prepare five terminals for those servers.
 
+## Architecture
+
+![Architecture](https://user-images.githubusercontent.com/125187079/236630803-6cd90873-734e-4bea-926b-98e117481c67.png)
+
 ## Node server
 
 Inside the root folder of this repository, you can run
