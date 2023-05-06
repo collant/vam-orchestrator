@@ -1,8 +1,0 @@
-tokenizers>=0.12.1
-accelerate
-sentencepiece
-argparse
-git+https://github.com/huggingface/transformers.git
-torch
-chromadb
-InstructorEmbedding
