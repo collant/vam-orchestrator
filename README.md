@@ -86,6 +86,11 @@ Github repository: https://github.com/SEPIA-Framework/sepia-stt-server
 node speech.js
 ```
 
+# Credits
+
+- @Acidbubbles for their perfect code template: https://github.com/acidbubbles/vam-plugin-template
+- @VAMDeluxe for their amazing code.
+
 # Discord server
 https://discord.gg/GqN3STn8U8
 
