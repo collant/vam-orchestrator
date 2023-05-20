@@ -1,8 +1,8 @@
 import { createRoot } from "react-dom/client";
 import Hello from "./Hello";
 
-const host = 'localhost'
-const webSocketPort = 8081
+const host = pubhost || 'localhost'
+const webSocketPort = pubport || '8081'
 
 const dispatcher = {
   dispatch: undefined
