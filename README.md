@@ -146,6 +146,10 @@ Most of the above params can be added together, eg python run.py --temperature 0
 ### Male or Other Voices
 You can sample different voices at `http://{your_lan_ip}:5002`. Take note of the `p###` number. You can set the default voice in .env but should make changes to the actual VAM plugin itself to change the selectable options.
 
+# Credits
+- @Acidbubbles for their perfect code template: https://github.com/acidbubbles/vam-plugin-template
+- @VAMDeluxe for their amazing code.
+
 # Discord server
 https://discord.gg/GqN3STn8U8
 
