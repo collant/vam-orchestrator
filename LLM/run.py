@@ -4,7 +4,7 @@ Usage:
 python client.py
 """
 import argparse
-
+import os
 import socket
 from json_socket import recv_json, send_json
 import torch
@@ -13,10 +13,12 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModel
 import chromadb
 from chromadb.utils import embedding_functions
 
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.pardir, '.env'))
 
-secret = "fast-92813dlkcvoiej5w98lxclpj239slk"
-host = 'localhost'
-port = 8000
+host = os.getenv('HOST')
+port = int(os.getenv('ORCHESTRATOR_PORT'))
+secret = os.getenv('SECRET')
 
 # embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
 # embedding_function = embedding_functions.InstructorEmbeddingFunction(model_name="hkunlp/instructor-large", device="cuda")

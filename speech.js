@@ -1,17 +1,21 @@
+import * as dotenv from 'dotenv'
+dotenv.config()
 import net from 'net';
 import wav from 'wav';
 import websocket from 'ws';
 import fetch from 'node-fetch'
 import {sendJSON, receiveJSONs} from './utils.js'
+import dotenv from 'dotenv';
 
-const secret = "fast-92813dlkcvoiej5w98lxclpj239slk"
-const host = 'localhost'
-const port = 8000
-const ttsHost = "localhost"
-const ttsPort = 5002
-const sttHost = "localhost"
-const sttPort = 20741
+dotenv.config();
 
+const secret = process.env.SECRET || "fast-92813dlkcvoiej5w98lxclpj239slk";
+const host = 'web' || process.env.HOST || 'localhost';
+const port = process.env.PORT || 8000;
+const ttsHost = process.env.TTS_HOST || "localhost";
+const ttsPort = process.env.TTS_PORT || 5002;
+const sttHost = process.env.STT_HOST || "localhost";
+const sttPort = process.env.STT_PORT || 20741;
 
 const getText = (wavPayload, onTranscriptReady) => {
     const options = {

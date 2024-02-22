@@ -1,13 +1,13 @@
+import * as dotenv from 'dotenv'
+dotenv.config()
 import net from 'net';
 import {sendJSON, receiveJSONs} from './utils.js'
 
-
-const secret = "fast-92813dlkcvoiej5w98lxclpj239slk"
-const host = 'localhost'
-const browserPort = 8080
-const orchestratorPort = 8000
-const webSocketPort = 8081
-
+const secret = process.env.SECRET || "fast-92813dlkcvoiej5w98lxclpj239slk";
+const host = process.env.HOST || 'localhost';
+const browserPort = process.env.BROWSER_PORT || 8080;
+const orchestratorPort = process.env.ORCHESTRATOR_PORT || 8000;
+const webSocketPort = process.env.WEBSOCKET_PORT || 8081;
 
 const socketMapping = {}
 let speechSocket = undefined
@@ -122,7 +122,7 @@ const server = net.createServer((socket) => {
                 choicesAPI(socketMapping[json.bucket.secret].uiState, receivedMessage,json.bucket.secret);
                 var speakerId = socketMapping[json.bucket.secret].speakerId
                 if (!speakerId) {
-                    speakerId = "p243"
+                    speakerId = process.env.DEFAULT_VOICE
                 }
                 var speech = requestSpeech(receivedMessage, speakerId, json.bucket);
                 if (speech) {
