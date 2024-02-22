@@ -9,14 +9,14 @@ services:
     volumes:
       - ./:/home/node/app
     ports:
-      - "8080:8080"
-      - "8000:8000"
-      - "8081:8081"
+      - '${BROWSER_PORT:-8080}:8080'
+      - '${ORCHESTRATOR_PORT:-8000}:8000'
+      - '${WEBSOCKET_PORT:-8081}:8081'
     command: "node server.js"
     restart: always
   coqui-ai:
     ports:
-      - '5002:5002'
+      - '${TTS_PORT:-5002}:5002'
     #command: python3 TTS/server/server.py --model_name tts_models/en/vctk/vits --use_cuda true
     entrypoint: ["python3","TTS/server/server.py","--model_name","tts_models/en/vctk/vits"] #,"--use_cuda","true"]
     image: 'ghcr.io/coqui-ai/tts-cpu:v0.11.1'
@@ -25,7 +25,7 @@ services:
     restart: always
   stt-server:
     ports:
-      - '20741:20741'
+      - '${STT_PORT:-20741}:20741'
     image: 'sepia/stt-server:dynamic_v1.0.0_amd64'
     restart: always
   speech:
@@ -40,4 +40,3 @@ services:
       - "speech:8081"
     command: "node speech.js"
     restart: always
-
